@@ -1,6 +1,8 @@
 with
 
 -- test comment
+-- Oops, this line might create
+-- a merge conflict
 
 source as (
 
