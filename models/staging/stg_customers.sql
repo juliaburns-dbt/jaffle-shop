@@ -1,5 +1,7 @@
 with
 
+-- test comment
+
 source as (
 
     select * from {{ source('ecom', 'raw_customers') }}
