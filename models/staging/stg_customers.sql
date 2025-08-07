@@ -1,8 +1,7 @@
 with
 
 -- test comment
--- Oops, this line might create
--- a merge conflict
+-- another test comment from Github web UI
 
 source as (
 
