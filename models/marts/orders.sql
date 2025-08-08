@@ -67,7 +67,7 @@ customer_order_count as (
 
         row_number() over (
             partition by customer_id
-            order by ordered_at asc
+            order by ordered_at desc
         ) as customer_order_number
 
     from compute_booleans
