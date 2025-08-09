@@ -1,3 +1,5 @@
+{{print(env_var('DBT_FIRST_ENV_VAR'))}}
+
 with
 
 source as (
