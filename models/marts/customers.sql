@@ -1,58 +1,72 @@
-with
-
-customers as (
-
-    select * from {{ ref('stg_customers') }}
-
-),
-
-orders as (
-
-    select * from {{ ref('orders') }}
-
-),
-
-customer_orders_summary as (
-
-    select
-        orders.customer_id,
-
-        count(distinct orders.order_id) as count_lifetime_orders,
-        count(distinct orders.order_id) > 2 as is_repeat_buyer,
-        min(orders.ordered_at) as first_ordered_at,
-        max(orders.ordered_at) as last_ordered_at,
-        sum(orders.subtotal) as lifetime_spend_pretax,
-        sum(orders.tax_paid) as lifetime_tax_paid,
-        sum(orders.order_total) as lifetime_spend
-
-    from orders
-
-    group by 1
-
-),
-
-joined as (
-
-    select
-        customers.*,
-
-        customer_orders_summary.count_lifetime_orders,
-        customer_orders_summary.first_ordered_at,
-        customer_orders_summary.last_ordered_at,
-        customer_orders_summary.lifetime_spend_pretax,
-        customer_orders_summary.lifetime_tax_paid,
-        customer_orders_summary.lifetime_spend,
-
-        case
-            when customer_orders_summary.is_repeat_buyer then 'returning'
-            else 'new'
-        end as customer_type
-
-    from customers
-
-    left join customer_orders_summary
-        on customers.customer_id = customer_orders_summary.customer_id
-
+WITH stg_customers AS (
+  SELECT
+    *
+  FROM {{ ref('stg_customers') }}
+), orders AS (
+  SELECT
+    *
+  FROM {{ ref('orders') }}
+), projection_b741 AS (
+  SELECT
+    *
+    RENAME (CUSTOMER_ID AS CUSTOMERS_CUSTOMER_ID)
+  FROM stg_customers
+), formula_57f0 AS (
+  SELECT
+    *,
+    COUNT(DISTINCT ORDER_ID) > 2 AS IS_REPEAT_BUYER
+  FROM orders
+), aggregation_f289 AS (
+  SELECT
+    CUSTOMER_ID,
+    COUNT(DISTINCT ORDER_ID) AS COUNT_LIFETIME_ORDERS,
+    MIN(ORDERED_AT) AS FIRST_ORDERED_AT,
+    MAX(ORDERED_AT) AS LAST_ORDERED_AT,
+    SUM(SUBTOTAL) AS LIFETIME_SPEND_PRETAX,
+    SUM(TAX_PAID) AS LIFETIME_TAX_PAID,
+    SUM(ORDER_TOTAL) AS LIFETIME_SPEND
+  FROM formula_57f0
+  GROUP BY
+    CUSTOMER_ID
+), projection_c129 AS (
+  SELECT
+    CUSTOMER_ID AS CUSTOMER_ORDERS_SUMMARY_CUSTOMER_ID,
+    COUNT_LIFETIME_ORDERS,
+    IS_REPEAT_BUYER,
+    FIRST_ORDERED_AT,
+    LAST_ORDERED_AT,
+    LIFETIME_SPEND_PRETAX,
+    LIFETIME_TAX_PAID,
+    LIFETIME_SPEND
+  FROM aggregation_f289
+), join_c652 AS (
+  SELECT
+    *
+  FROM projection_b741
+  LEFT JOIN projection_c129
+    ON projection_b741.CUSTOMERS_CUSTOMER_ID = projection_c129.CUSTOMER_ORDERS_SUMMARY_CUSTOMER_ID
+), formula_aa50 AS (
+  SELECT
+    *,
+    CASE WHEN IS_REPEAT_BUYER THEN 'returning' ELSE 'new' END AS CUSTOMER_TYPE
+  FROM join_c652
+), projection_6b54 AS (
+  SELECT
+    CUSTOMERS_CUSTOMER_ID AS CUSTOMER_ID,
+    CUSTOMER_NAME,
+    COUNT_LIFETIME_ORDERS,
+    FIRST_ORDERED_AT,
+    LAST_ORDERED_AT,
+    LIFETIME_SPEND_PRETAX,
+    LIFETIME_TAX_PAID,
+    LIFETIME_SPEND,
+    CUSTOMER_TYPE
+  FROM formula_aa50
+), customers AS (
+  SELECT
+    *
+  FROM projection_6b54
 )
-
-select * from joined
+SELECT
+  *
+FROM customers
